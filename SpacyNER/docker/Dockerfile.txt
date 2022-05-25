@@ -1,0 +1,55 @@
+FROM docker.io/pytorch/pytorch:1.9.0-cuda11.1-cudnn8-devel
+# https://docs.nvidia.com/deeplearning/frameworks/pytorch-release-notes/rel_21-04.html#rel_21-04
+# Cuda 11.1, Py 3.8, PyTorch 1.9, Jupyter notebook and jupyter lab installed
+
+# proxy related env settings
+ENV https_proxy=<proxy_url>
+ENV http_proxy=<proxy_url>
+ENV no_proxy=<no_proxy_url>
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Set environment variables
+# the following 2 environment variables are needed to download spacy models
+ENV LC_ALL=C.UTF-8
+ENV LANG=C.UTF-8
+ENV SHELL /bin/bash
+
+# solution for fix: https://stackoverflow.com/questions/38002543/apt-get-update-returned-a-non-zero-code-100
+RUN apt-get install -y apt-transport-https
+
+# to enable wget, vim, git and curl from inside the docker container
+# RUN apt-get update && apt-get install -y --allow-downgrades --allow-change-held-packages --no-install-recommends \
+#   build-essential \
+#   cmake \
+#   g++ \
+#   git \
+#   curl \
+#   vim \
+#   wget
+
+# to enable scp inside and outside of docker container
+# RUN apt-get -y update && apt-get install -y openssh-server
+
+# before pip installing packages, upgrade, pip, setuptools and wheels
+RUN pip install -U pip setuptools wheel
+
+# for learning torchtext, torchvision and captum (for model interpretability)
+RUN pip install torchvision torchtext matplotlib tensorboard captum
+
+
+# Apart from PyTorch, other core DL libraries for NLP
+# installing spacy, transformers and sentence_transformers
+RUN pip install transformers tokenizers spacy[cuda111,transformers] sentencepiece sentence-transformers
+
+# install spacy small and trf models
+RUN python -m spacy download en_core_web_sm
+RUN python -m spacy download en_core_web_trf
+
+# python ecosystem for traditional machine learning/ data science
+RUN pip install -U scikit-learn pandas numpy scipy seaborn 
+
+
+RUN pip install jupyter
+
+RUN jupyter nbextension enable --py widgetsnbextension && \
+    rm -rf /var/lib/apt/lists/*
